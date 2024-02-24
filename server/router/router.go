@@ -1,18 +1,21 @@
 package router
 
 import (
+	"cloud/middleware"
 	"cloud/server"
+	"cloud/server/handler"
 	"cloud/tool"
 	"context"
 	"encoding/json"
-	"os"
-
+	"github.com/go-playground/validator/v10"
+	"github.com/labstack/echo/v4"
 	echoMiddleware "github.com/labstack/echo/v4/middleware"
+	"os"
 )
 
 var (
 	Echo         = echo.New()
-	cloudHandler = handler.cloudHandler{}
+	cloudHandler = handler.UserHandler{}
 )
 
 type CustomValidator struct {

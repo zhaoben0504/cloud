@@ -6,6 +6,7 @@ import (
 )
 
 const (
+	ServiceID           = "CLOUD_ID"
 	OkCode              = 0
 	InternalErrCode     = 100001
 	ParamErrCode        = 100002

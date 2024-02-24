@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"os"
 )
@@ -32,7 +33,8 @@ type RedisConfig struct {
 }
 
 func LoadLocalConfig(path, mode string) (*Config, error) {
-	data, err := ioutil.ReadFile(fmt.Sprintf("%s/%s/server.yaml", path, mode))
+	configPath := fmt.Sprintf("%s/%s/server.yaml", path, mode)
+	data, err := ioutil.ReadFile(configPath)
 
 	if err != nil {
 		return nil, err

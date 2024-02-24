@@ -1,17 +1,17 @@
 package server
 
 import (
+	"cloud/tool"
 	"context"
 	"errors"
 	"fmt"
+	"github.com/bwmarrin/snowflake"
+	"github.com/go-redis/redis/v8"
+	"github.com/go-xorm/xorm"
+	"golang.org/x/text/language"
 	"os"
 	"strconv"
 	"strings"
-
-	"github.com/bwmarrin/snowflake"
-	"github.com/go-xorm/xorm"
-	"github.com/minio/minio-go/v7/pkg/credentials"
-	"golang.org/x/text/language"
 	xormcore "xorm.io/core"
 
 	// not need
@@ -27,7 +27,6 @@ type Server struct {
 	Mode        string
 	Node        *snowflake.Node
 	redisClient *redis.Client
-	minioClient *minio.Client
 	bundle      *tool.Bundle
 }
 
@@ -66,15 +65,6 @@ func NewServer(configPath, mode string) error {
 	}
 	server.redisClient = redisClient
 
-	minioClient, err := minio.New(config.Minio.Endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(config.Minio.AccessKeyID, config.Minio.SecretAccessKey, ""),
-		Secure: config.Minio.UseSSL,
-	})
-	if err != nil {
-		tool.Logger.Error(err.Error())
-		return err
-	}
-	server.minioClient = minioClient
 	server.bundle = tool.NewBundle(language.Chinese)
 
 	return nil

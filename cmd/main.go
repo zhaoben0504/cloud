@@ -29,7 +29,7 @@ func main() {
 		tool.Logger.Fatal("env DEP_MODE is absent")
 	}
 
-	err := server.NewServer("./config/", DepMode)
+	err := server.NewServer("./config", DepMode)
 	if nil != err {
 		tool.Logger.Fatal(err.Error())
 	}

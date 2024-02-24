@@ -1,0 +1,12 @@
+port: 4001
+log_level: "debug"
+expired_in: 7200
+db:
+  max_con: 20
+  max_idle_con: 5
+  driver_name: "mysql"
+  data_sources:
+    - "root:root@tcp(127.0.0.1:3306)/cloud"
+redis:
+  host: "127.0.0.1:6379" # suhc-elevtest-01:7379
+  pwd: "123456"

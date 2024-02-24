@@ -1,5 +1,9 @@
 package router
 
+import (
+	"cloud/middleware"
+)
+
 func initCloudRouter() {
 	list := []middleware.PermissionItem{
 		//{
