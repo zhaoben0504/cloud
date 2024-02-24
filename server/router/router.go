@@ -14,8 +14,8 @@ import (
 )
 
 var (
-	Echo         = echo.New()
-	cloudHandler = handler.UserHandler{}
+	Echo        = echo.New()
+	userHandler = handler.UserHandler{}
 )
 
 type CustomValidator struct {

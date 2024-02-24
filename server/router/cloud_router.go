@@ -2,20 +2,27 @@ package router
 
 import (
 	"cloud/middleware"
+	"net/http"
 )
 
 func initCloudRouter() {
 	list := []middleware.PermissionItem{
-		//{
-		//	Method:      http.MethodPost,
-		//	Handler:     applicationHandler.Add,
-		//	URL:         "/lcdp/app",
-		//	Permissions: []string{"A"},
-		//},
+		{
+			Method:      http.MethodPost,
+			Handler:     userHandler.Login,
+			URL:         "/user/login",
+			Permissions: []string{"A"},
+		},
+		{
+			Method:      http.MethodPost,
+			Handler:     userHandler.Register,
+			URL:         "/user/register",
+			Permissions: []string{"A"},
+		},
 		//{
 		//	Method:      http.MethodGet,
-		//	Handler:     applicationHandler.Test,
-		//	URL:         "/lcdp/app/resources/:appid/:filename",
+		//	Handler:     ,
+		//	URL:         "",
 		//	Permissions: []string{"A"},
 		//},
 	}
