@@ -7,6 +7,7 @@ import (
 	"cloud/server/model"
 	"cloud/tool"
 	"context"
+	"fmt"
 )
 
 // UserService User service
@@ -70,4 +71,44 @@ func (s *UserService) Register(req *dto.UserRegisterDTO) (*int64, int) {
 	}
 
 	return &id, server.OkCode
+}
+
+func (s *UserService) EmailCode(req *dto.EmailCodeDTO) (token *string, code int) {
+	// 1.从数据库读取数据
+	user := new(model.UserBasic)
+	has, err := server.GetEngine().Where("email= ?", req.Email).Get(user)
+	if err != nil {
+		tool.Logger.Error(err.Error())
+		return nil, server.SQLErrCode
+	}
+	if !has {
+		return nil, server.ParamErrCode
+	}
+
+	// 2.邮箱存在
+	emailCode := tool.GenerateEmailCode()
+	err = tool.SetInfoInRedis(req.Email, emailCode, server.CodeExprie)
+	if err != nil {
+		tool.Logger.Error(err.Error())
+		return nil, server.InternalErrCode
+	}
+
+	data := fmt.Sprintf("已经向%s的邮箱成功发送验证码, 验证码是%s", req.Email, emailCode)
+
+	return &data, server.OkCode
+}
+
+func (s *UserService) UserInfo(req *dto.UserInfoDTO) (userInfo *model.UserBasic, code int) {
+	// 1.从数据库读取数据
+	//user := new(model.UserBasic)
+	err := server.GetEngine().Where("id= ?", req.Id).Find(userInfo)
+	if err != nil {
+		tool.Logger.Error(err.Error())
+		return nil, server.SQLErrCode
+	}
+	if userInfo == nil {
+		return nil, server.UserNotExistErrCode
+	}
+
+	return userInfo, server.OkCode
 }

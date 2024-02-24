@@ -11,3 +11,11 @@ type UserRegisterDTO struct {
 	Email    string `json:"email"`
 	Code     string `json:"code"`
 }
+
+type EmailCodeDTO struct {
+	Email string `json:"email"`
+}
+
+type UserInfoDTO struct {
+	Id string `json:"id"`
+}

@@ -238,3 +238,12 @@ func CosChunkUploadFinish(key, uploadId string, co []cos.Object) error {
 	)
 	return err
 }
+
+func SetInfoInRedis(key, value string, duration int) error {
+	_, err := server.GetRedisClient().Set(context.Background(), key, value, time.Second*time.Duration(duration)).Result()
+	if err != nil {
+		Logger.Error(err.Error())
+		return err
+	}
+	return nil
+}

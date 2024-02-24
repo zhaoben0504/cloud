@@ -19,6 +19,12 @@ func initCloudRouter() {
 			URL:         "/user/register",
 			Permissions: []string{"A"},
 		},
+		{
+			Method:      http.MethodPost,
+			Handler:     userHandler.EmailCode,
+			URL:         "/user/code",
+			Permissions: []string{"A"},
+		},
 		//{
 		//	Method:      http.MethodGet,
 		//	Handler:     ,

@@ -46,6 +46,7 @@ const (
 	PermissionErrCode       = 200002
 	VerificationCodeErrCode = 200003
 	UserAlreadyExistErrCode = 200004
+	UserNotExistErrCode     = 200005
 )
 
 type Empty struct {

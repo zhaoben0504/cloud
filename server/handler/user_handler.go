@@ -24,11 +24,11 @@ func (h UserHandler) Register(c echo.Context) error {
 	if err := c.Validate(req); err != nil {
 		return err
 	}
-	id, code := h.service.Register(&req)
+	resp, code := h.service.Register(&req)
 	if code != server.OkCode {
 		return c.JSON(http.StatusOK, server.NewError(lang, code))
 	}
-	return c.JSON(http.StatusOK, server.NewOK(lang, id))
+	return c.JSON(http.StatusOK, server.NewOK(lang, resp))
 }
 
 func (h UserHandler) Login(c echo.Context) error {
@@ -41,9 +41,43 @@ func (h UserHandler) Login(c echo.Context) error {
 	if err := c.Validate(req); err != nil {
 		return err
 	}
-	token, code := h.service.Login(&req)
+	resp, code := h.service.Login(&req)
 	if code != server.OkCode {
 		return c.JSON(http.StatusOK, server.NewError(lang, code))
 	}
-	return c.JSON(http.StatusOK, server.NewOK(lang, token))
+	return c.JSON(http.StatusOK, server.NewOK(lang, resp))
+}
+
+func (h UserHandler) EmailCode(c echo.Context) error {
+	var req dto.EmailCodeDTO
+	lang := tool.GetHeaderLanguage(c.Request().Header)
+	if err := c.Bind(&req); err != nil {
+		tool.Logger.Error(err.Error())
+		return c.JSON(http.StatusOK, server.NewError(lang, server.ParamErrCode))
+	}
+	if err := c.Validate(req); err != nil {
+		return err
+	}
+	resp, code := h.service.EmailCode(&req)
+	if code != server.OkCode {
+		return c.JSON(http.StatusOK, server.NewError(lang, code))
+	}
+	return c.JSON(http.StatusOK, server.NewOK(lang, resp))
+}
+
+func (h UserHandler) UserInfo(c echo.Context) error {
+	var req dto.UserInfoDTO
+	lang := tool.GetHeaderLanguage(c.Request().Header)
+	if err := c.Bind(&req); err != nil {
+		tool.Logger.Error(err.Error())
+		return c.JSON(http.StatusOK, server.NewError(lang, server.ParamErrCode))
+	}
+	if err := c.Validate(req); err != nil {
+		return err
+	}
+	result, code := h.service.UserInfo(&req)
+	if code != server.OkCode {
+		return c.JSON(http.StatusOK, server.NewError(lang, code))
+	}
+	return c.JSON(http.StatusOK, server.NewOK(lang, result))
 }
