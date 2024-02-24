@@ -1,7 +1,12 @@
 package main
 
 import (
+	"cloud/server"
+	"cloud/server/router"
+	"cloud/tool"
 	"fmt"
+	"github.com/labstack/echo/v4"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -28,9 +33,9 @@ func main() {
 	if nil != err {
 		tool.Logger.Fatal(err.Error())
 	}
-	server.LoadMessageFile([]string{"./i18n/lcdp.en.yaml", "./i18n/lcdp.zh.yaml"})
+	server.LoadMessageFile([]string{"./i18n/cloud.en.yaml", "./i18n/cloud.zh.yaml"})
 	router.InitRouter()
-	router.Echo.GET("/lcdp/about", about)
+	router.Echo.GET("/cloud/about", about)
 	router.Echo.Logger.Fatal(router.Echo.Start(fmt.Sprintf(":%d", server.GetPort())))
 
 }

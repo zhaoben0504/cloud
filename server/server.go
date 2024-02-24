@@ -7,6 +7,15 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/bwmarrin/snowflake"
+	"github.com/go-xorm/xorm"
+	"github.com/minio/minio-go/v7/pkg/credentials"
+	"golang.org/x/text/language"
+	xormcore "xorm.io/core"
+
+	// not need
+	_ "github.com/go-sql-driver/mysql"
 )
 
 var server = &Server{}
