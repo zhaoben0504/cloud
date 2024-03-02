@@ -27,8 +27,9 @@ func (s *UserService) Login(req *dto.UserLoginDTO) (token *string, code int) {
 	if !has {
 		return nil, server.ParamErrCode
 	}
-	// 2.返回token
-	*token, err = server.GenerateToken(*user.Id, *user.Identity, *user.Name, int64(server.TokenExpire))
+
+	// 2.生成token并塞入Redis
+	*token, err = server.GenerateToken(user)
 	if err != nil {
 		tool.Logger.Error(err.Error())
 		return nil, server.InternalErrCode

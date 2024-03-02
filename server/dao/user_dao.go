@@ -41,3 +41,22 @@ func (d UserDao) Add(engine *xorm.EngineGroup, entity *model.UserBasic) (int64, 
 	}
 	return *entity.Id, nil
 }
+
+// GetByID 根据id查询
+func (d UserDao) GetByID(engine *xorm.EngineGroup, id int64) (*model.UserBasic, error) {
+	if engine == nil {
+		tool.Logger.Error(server.GetMsgByCode("en", server.InternalErrCode))
+		return nil, errors.New(server.GetMsgByCode("en", server.InternalErrCode))
+	}
+	var entity model.UserBasic
+	b, err := engine.Where("id=? AND deleted_at=0", id).Get(&entity)
+	if err != nil {
+		tool.Logger.Error(err)
+		return nil, err
+	}
+	if !b {
+		tool.Logger.Error("not found")
+		return nil, nil
+	}
+	return &entity, nil
+}

@@ -32,7 +32,7 @@ var Pagesize int = 20
 
 var DateTime = "2006-01-02 15:04:5"
 
-var TokenExpire int64 = 3600 * 12
+var TokenExpire int = 3600 * 12
 var RefreshTokenExpire int64 = 3600 * 24
 
 const (

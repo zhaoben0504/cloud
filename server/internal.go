@@ -2,14 +2,15 @@ package server
 
 import (
 	"bytes"
+	"cloud/server/model"
 	"cloud/tool"
 	"context"
-	"errors"
-	"github.com/golang-jwt/jwt"
+	"encoding/json"
 	uuid2 "github.com/hashicorp/go-uuid"
 	"github.com/tencentyun/cos-go-sdk-v5"
 	"io"
 	"math/rand"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"os"
@@ -19,36 +20,43 @@ import (
 	"time"
 )
 
-func GenerateToken(id int64, identity, name string, second int64) (string, error) {
-	uc := UserClaim{
-		Id:       id,
-		Identity: identity,
-		Name:     name,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Second * time.Duration(second)).Unix(),
-		},
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, uc)
-	tokenString, err := token.SignedString([]byte(JwtKey))
+func GenerateToken(user *model.UserBasic) (string, error) {
+	tokenInfo, err := json.Marshal(user)
 	if err != nil {
 		return "", err
 	}
-	return tokenString, nil
+
+	token := tool.MD5(string(tokenInfo))
+	if err != nil {
+		return "", err
+	}
+
+	// 塞入Redis
+	err = SetInfoInRedis(token, string(tokenInfo), TokenExpire)
+	if err != nil {
+		return "", err
+	}
+
+	return token, nil
 }
 
-func AnalyzeToke(token string) (*UserClaim, error) {
-	uc := &UserClaim{}
-	claims, err := jwt.ParseWithClaims(token, uc, func(token *jwt.Token) (interface{}, error) {
-		return []byte(JwtKey), nil
-	})
+func GetUserInfoFromToken(token string) (userInfo *model.UserBasic, err error) {
+	err = json.Unmarshal([]byte(token), &userInfo)
 	if err != nil {
+		tool.Logger.Error(err)
 		return nil, err
 	}
-	if !claims.Valid {
-		return nil, errors.New("token is invalid")
+
+	b, err := GetEngine().Where("id=? AND deleted_at=0", userInfo.Id).Get(&userInfo)
+	if err != nil {
+		tool.Logger.Error(err)
+		return nil, err
 	}
-	return uc, err
+	if !b {
+		tool.Logger.Error("not found")
+		return nil, nil
+	}
+	return userInfo, nil
 }
 
 func SendEmailCode() string {
@@ -73,8 +81,21 @@ func GenerateUUID() string {
 	return str[0:15]
 }
 
-// upload file to COS
-func UploadCos(req *http.Request) (string, error) {
+// UploadCos upload file to COS
+func UploadCos(fileHeader multipart.FileHeader) (string, error) {
+	file, err := fileHeader.Open()
+	if err != nil {
+		tool.Logger.Error(err.Error())
+		return "", err
+	}
+	defer func(file multipart.File) {
+		err = file.Close()
+		if err != nil {
+			tool.Logger.Error(err.Error())
+			return
+		}
+	}(file)
+
 	u, _ := url.Parse(COSADDR)
 	b := &cos.BaseURL{BucketURL: u}
 	client := cos.NewClient(b, &http.Client{
@@ -84,14 +105,14 @@ func UploadCos(req *http.Request) (string, error) {
 		},
 	})
 
-	file, fileHeader, err := req.FormFile("file")
 	key := "mystorage/" + GenerateUUID() + path.Ext(fileHeader.Filename)
 
 	_, err = client.Object.Put(
 		context.Background(), key, file, nil,
 	)
 	if err != nil {
-		panic(err)
+		tool.Logger.Error(err.Error())
+		return "", err
 	}
 	return COSADDR + "/" + key, nil
 }
