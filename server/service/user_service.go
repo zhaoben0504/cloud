@@ -28,7 +28,7 @@ func (s *UserService) Login(req *dto.UserLoginDTO) (token *string, code int) {
 		return nil, server.ParamErrCode
 	}
 	// 2.返回token
-	*token, err = tool.GenerateToken(*user.Id, *user.Identity, *user.Name, int64(server.TokenExpire))
+	*token, err = server.GenerateToken(*user.Id, *user.Identity, *user.Name, int64(server.TokenExpire))
 	if err != nil {
 		tool.Logger.Error(err.Error())
 		return nil, server.InternalErrCode
@@ -86,8 +86,8 @@ func (s *UserService) EmailCode(req *dto.EmailCodeDTO) (token *string, code int)
 	}
 
 	// 2.邮箱存在
-	emailCode := tool.GenerateEmailCode()
-	err = tool.SetInfoInRedis(req.Email, emailCode, server.CodeExprie)
+	emailCode := server.GenerateEmailCode()
+	err = server.SetInfoInRedis(req.Email, emailCode, server.CodeExprie)
 	if err != nil {
 		tool.Logger.Error(err.Error())
 		return nil, server.InternalErrCode
