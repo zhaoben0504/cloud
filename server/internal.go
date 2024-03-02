@@ -6,14 +6,13 @@ import (
 	"cloud/tool"
 	"context"
 	"encoding/json"
+	"errors"
 	uuid2 "github.com/hashicorp/go-uuid"
 	"github.com/tencentyun/cos-go-sdk-v5"
 	"io"
 	"math/rand"
 	"mime/multipart"
 	"net/http"
-	"net/url"
-	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -59,10 +58,6 @@ func GetUserInfoFromToken(token string) (userInfo *model.UserBasic, err error) {
 	return userInfo, nil
 }
 
-func SendEmailCode() string {
-	return "123456"
-}
-
 func GenerateEmailCode() string {
 	str := "1234567890"
 	code := ""
@@ -81,8 +76,8 @@ func GenerateUUID() string {
 	return str[0:15]
 }
 
-// UploadCos upload file to COS
-func UploadCos(fileHeader multipart.FileHeader) (string, error) {
+// UploadFile upload file to COS
+func UploadFile(fileHeader multipart.FileHeader) (string, error) {
 	file, err := fileHeader.Open()
 	if err != nil {
 		tool.Logger.Error(err.Error())
@@ -96,38 +91,35 @@ func UploadCos(fileHeader multipart.FileHeader) (string, error) {
 		}
 	}(file)
 
-	u, _ := url.Parse(COSADDR)
-	b := &cos.BaseURL{BucketURL: u}
-	client := cos.NewClient(b, &http.Client{
-		Transport: &cos.AuthorizationTransport{
-			SecretID:  os.Getenv(CloudId),
-			SecretKey: os.Getenv(CloudKey),
-		},
-	})
-
-	key := "mystorage/" + GenerateUUID() + path.Ext(fileHeader.Filename)
-
-	_, err = client.Object.Put(
-		context.Background(), key, file, nil,
-	)
+	filePath := "mystorage/" + GenerateUUID() + path.Ext(fileHeader.Filename)
+	err = uploadCos(filePath, file)
 	if err != nil {
 		tool.Logger.Error(err.Error())
 		return "", err
 	}
-	return COSADDR + "/" + key, nil
+
+	return filePath, nil
+}
+
+// DownloadFile download file from COS
+func DownloadFile(fileId string) ([]byte, error) {
+	if fileId == "" {
+		tool.Logger.Error(errors.New(GetMsgByCode("zh", ParamErrCode)))
+		return nil, errors.New(GetMsgByCode("zh", ParamErrCode))
+	}
+
+	filePath := "mystorage/" + fileId
+	file, err := downloadCos(filePath)
+	if err != nil {
+		tool.Logger.Error(err.Error())
+		return nil, err
+	}
+	return file, nil
 }
 
 func CosInitPart(ext string) (string, string, error) {
-	u, _ := url.Parse(COSADDR)
-	b := &cos.BaseURL{BucketURL: u}
-	client := cos.NewClient(b, &http.Client{
-		Transport: &cos.AuthorizationTransport{
-			SecretID:  os.Getenv(CloudId),
-			SecretKey: os.Getenv(CloudKey),
-		},
-	})
 	key := "mystorage/" + GenerateUUID() + "." + ext
-	v, _, err := client.Object.InitiateMultipartUpload(context.Background(), key, nil)
+	v, _, err := GetCosClient().Object.InitiateMultipartUpload(context.Background(), key, nil)
 	if err != nil {
 		return "", "", err
 	}
@@ -135,14 +127,6 @@ func CosInitPart(ext string) (string, string, error) {
 }
 
 func CosPartUpload(r *http.Request) (string, error) {
-	u, _ := url.Parse(COSADDR)
-	b := &cos.BaseURL{BucketURL: u}
-	client := cos.NewClient(b, &http.Client{
-		Transport: &cos.AuthorizationTransport{
-			SecretID:  os.Getenv(CloudId),
-			SecretKey: os.Getenv(CloudKey),
-		},
-	})
 	key := r.PostForm.Get("key")
 	UploadID := r.PostForm.Get("uploadId")
 	partNumber, err := strconv.Atoi(r.PostForm.Get("partNumber"))
@@ -152,7 +136,7 @@ func CosPartUpload(r *http.Request) (string, error) {
 	}
 	buf := bytes.NewBuffer(nil)
 	io.Copy(buf, f)
-	resp, err := client.Object.UploadPart(
+	resp, err := GetCosClient().Object.UploadPart(
 		context.Background(), key, UploadID, partNumber, bytes.NewReader(buf.Bytes()), nil,
 	)
 	if err != nil {
@@ -161,20 +145,11 @@ func CosPartUpload(r *http.Request) (string, error) {
 	return strings.Trim(resp.Header.Get("ETag"), "\""), nil
 }
 
-// 分片上传的结束
+// CosChunkUploadFinish 分片上传的结束
 func CosChunkUploadFinish(key, uploadId string, co []cos.Object) error {
-	u, _ := url.Parse(COSADDR)
-	b := &cos.BaseURL{BucketURL: u}
-	client := cos.NewClient(b, &http.Client{
-		Transport: &cos.AuthorizationTransport{
-			SecretID:  os.Getenv(CloudId),
-			SecretKey: os.Getenv(CloudKey),
-		},
-	})
-
 	opt := &cos.CompleteMultipartUploadOptions{}
 	opt.Parts = append(opt.Parts, co...)
-	_, _, err := client.Object.CompleteMultipartUpload(
+	_, _, err := GetCosClient().Object.CompleteMultipartUpload(
 		context.Background(), key, uploadId, opt,
 	)
 	return err
@@ -187,4 +162,40 @@ func SetInfoInRedis(key, value string, duration int) error {
 		return err
 	}
 	return nil
+}
+
+func uploadCos(filePath string, file multipart.File) error {
+	if filePath == "" || file == nil {
+		tool.Logger.Error(errors.New(GetMsgByCode("zh", ParamErrCode)))
+		return errors.New(GetMsgByCode("zh", ParamErrCode))
+	}
+	_, err := server.CosClient.Object.Put(
+		context.Background(), filePath, file, nil,
+	)
+	if err != nil {
+		tool.Logger.Error(err.Error())
+		return err
+	}
+	return nil
+}
+
+func downloadCos(filePath string) ([]byte, error) {
+	if filePath == "" {
+		tool.Logger.Error(errors.New(GetMsgByCode("zh", ParamErrCode)))
+		return nil, errors.New(GetMsgByCode("zh", ParamErrCode))
+	}
+	object, err := GetCosClient().Object.Get(
+		context.Background(), filePath, &cos.ObjectGetOptions{},
+	)
+	if err != nil {
+		tool.Logger.Error(err.Error())
+		return nil, err
+	}
+
+	objectBytes, err := io.ReadAll(object.Body)
+	if err != nil {
+		tool.Logger.Error(err.Error())
+		return nil, err
+	}
+	return objectBytes, nil
 }

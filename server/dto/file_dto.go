@@ -9,3 +9,8 @@ type UploadFileDTO struct {
 	FileName *string               `json:"file_name" form:"file_name" validate:"required"`
 	Path     *string               `json:"path" form:"path" validate:"required"`
 }
+
+type DownloadFileDTO struct {
+	Token string `json:"token"`
+	ID    string `json:"string" form:"id" validate:"required"`
+}

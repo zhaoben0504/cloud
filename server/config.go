@@ -9,12 +9,13 @@ import (
 // Config server config
 type Config struct {
 	Mode      string
-	LogLevel  string      `yaml:"log_level"`
-	ExpiredIn int         `yaml:"expired_in"` // redis 过期时间
-	DB        *DBConfig   `yaml:"db"`
-	Port      int         `yaml:"port"`
-	Node      int64       `yaml:"node"`
-	Redis     RedisConfig `yaml:"redis"`
+	LogLevel  string       `yaml:"log_level"`
+	ExpiredIn int          `yaml:"expired_in"` // redis 过期时间
+	DB        *DBConfig    `yaml:"db"`
+	Port      int          `yaml:"port"`
+	Node      int64        `yaml:"node"`
+	Redis     *RedisConfig `yaml:"redis"`
+	Cos       *CosConfig   `yaml:"cos"`
 }
 
 // DBConfig config of db
@@ -29,6 +30,13 @@ type DBConfig struct {
 type RedisConfig struct {
 	Host string `yaml:"host"`
 	Pwd  string `yaml:"pwd"`
+}
+
+// CosConfig cos config
+type CosConfig struct {
+	CosKey  string `yaml:"cos_key"`
+	CosId   string `yaml:"cos_id"`
+	CosAddr string `yaml:"cos_addr"`
 }
 
 func LoadLocalConfig(path, mode string) (*Config, error) {

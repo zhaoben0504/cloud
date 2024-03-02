@@ -8,7 +8,10 @@ import (
 	"github.com/bwmarrin/snowflake"
 	"github.com/go-redis/redis/v8"
 	"github.com/go-xorm/xorm"
+	"github.com/tencentyun/cos-go-sdk-v5"
 	"golang.org/x/text/language"
+	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -28,6 +31,7 @@ type Server struct {
 	Node        *snowflake.Node
 	redisClient *redis.Client
 	bundle      *tool.Bundle
+	CosClient   *cos.Client
 }
 
 func NewServer(configPath, mode string) error {
@@ -52,18 +56,19 @@ func NewServer(configPath, mode string) error {
 	}
 	server.Node = node
 
-	redisClient := redis.NewClient(&redis.Options{
-		Addr:     config.Redis.Host,
-		Password: config.Redis.Pwd, // no password set
-		DB:       0,                // use default DB
-	})
-
-	_, err = redisClient.Ping(context.Background()).Result()
-	if nil != err {
+	redisClient, err := initRedisClient(config.Redis)
+	if err != nil {
 		tool.Logger.Error(err.Error())
 		return err
 	}
 	server.redisClient = redisClient
+
+	cosClient, err := initCosClient(config.Cos)
+	if err != nil {
+		tool.Logger.Error(err.Error())
+		return err
+	}
+	server.CosClient = cosClient
 
 	server.bundle = tool.NewBundle(language.Chinese)
 
@@ -118,7 +123,39 @@ func initEngine(config *DBConfig) (*xorm.EngineGroup, error) {
 	return engineGroup, nil
 }
 
-// GetID id generage
+func initRedisClient(config *RedisConfig) (*redis.Client, error) {
+	if config == nil || len(config.Host) == 0 || len(config.Pwd) == 0 {
+		tool.Logger.Error("the redis config of data sources is empty, Server.Engine is not init")
+		return nil, errors.New("the redis config of data sources is empty, Server.Engine is not init")
+	}
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     config.Host,
+		Password: config.Pwd, // no password set
+		DB:       0,          // use default DB
+	})
+	_, err := redisClient.Ping(context.Background()).Result()
+	if nil != err {
+		tool.Logger.Error(err.Error())
+		return nil, err
+	}
+
+	return redisClient, nil
+}
+
+func initCosClient(config *CosConfig) (*cos.Client, error) {
+	u, _ := url.Parse(config.CosAddr)
+	b := &cos.BaseURL{BucketURL: u}
+	client := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv(config.CosId),
+			SecretKey: os.Getenv(config.CosKey),
+		},
+	})
+
+	return client, nil
+}
+
+// GetID id generate
 func GetID() int64 {
 	return int64(server.Node.Generate())
 }
@@ -126,6 +163,14 @@ func GetID() int64 {
 // GetRedisClient redis client
 func GetRedisClient() *redis.Client {
 	return server.redisClient
+}
+
+func GetEngine() *xorm.EngineGroup {
+	return server.Engine
+}
+
+func GetCosClient() *cos.Client {
+	return server.CosClient
 }
 
 // formatDataSources 格式化data source, 去掉敏感的用户名密码
@@ -137,10 +182,6 @@ func formatDataSources(sources []string) string {
 	}
 
 	return fmt.Sprintf("%v", formatSources)
-}
-
-func GetEngine() *xorm.EngineGroup {
-	return server.Engine
 }
 
 func GetPort() int {

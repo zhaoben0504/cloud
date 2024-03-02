@@ -22,11 +22,6 @@ var EmailCodeLen = 6
 // 验证码过期时间
 var CodeExprie = 300
 
-// 腾讯云
-var CloudKey = "TECENTCLOUDSECRETKEY"
-var CloudId = "TECENTCLOUDSECRETID"
-var COSADDR = "https://my-storage-1306331535.cos.ap-nanjing.myqcloud.com"
-
 // 默认的分页
 var Pagesize int = 20
 

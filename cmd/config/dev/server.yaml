@@ -10,3 +10,7 @@ db:
 redis:
   host: "127.0.0.1:6379" # suhc-elevtest-01:7379
   pwd: "123456"
+cos:
+  cos_key: "TECENTCLOUDSECRETKEY"
+  cos_id : "TECENTCLOUDSECRETID"
+  cos_addr : "https://my-storage-1306331535.cos.ap-nanjing.myqcloud.com"

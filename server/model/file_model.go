@@ -1,8 +1,8 @@
 package model
 
-// UploadFile db fle object
-type UploadFile struct {
-	ID        *int64  `json:"id,string" xorm:"pk"`
+// File db fle object
+type File struct {
+	ID        *string `json:"id,string" xorm:"pk"`
 	FileName  *string `json:"file_name"`
 	Path      *string `json:"path"`
 	Uid       *int64  `json:"uid"`
