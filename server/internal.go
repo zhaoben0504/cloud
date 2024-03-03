@@ -117,6 +117,22 @@ func DownloadFile(fileId string) ([]byte, error) {
 	return file, nil
 }
 
+// DeleteFile delete file from COS
+func DeleteFile(fileId string) error {
+	if fileId == "" {
+		tool.Logger.Error(errors.New(GetMsgByCode("zh", ParamErrCode)))
+		return errors.New(GetMsgByCode("zh", ParamErrCode))
+	}
+
+	filePath := "mystorage/" + fileId
+	err := deleteCos(filePath)
+	if err != nil {
+		tool.Logger.Error(err.Error())
+		return err
+	}
+	return nil
+}
+
 func CosInitPart(ext string) (string, string, error) {
 	key := "mystorage/" + GenerateUUID() + "." + ext
 	v, _, err := GetCosClient().Object.InitiateMultipartUpload(context.Background(), key, nil)
@@ -198,4 +214,25 @@ func downloadCos(filePath string) ([]byte, error) {
 		return nil, err
 	}
 	return objectBytes, nil
+}
+
+func deleteCos(filePath string) error {
+	if filePath == "" {
+		tool.Logger.Error(errors.New(GetMsgByCode("zh", ParamErrCode)))
+		return errors.New(GetMsgByCode("zh", ParamErrCode))
+	}
+	object, err := GetCosClient().Object.Delete(
+		context.Background(), filePath, &cos.ObjectDeleteOptions{},
+	)
+	if err != nil {
+		tool.Logger.Error(err.Error())
+		return err
+	}
+
+	if object.StatusCode != 200 {
+		tool.Logger.Error(err.Error())
+		return errors.New(GetMsgByCode("zh", InternalErrCode))
+	}
+
+	return nil
 }

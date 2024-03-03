@@ -56,3 +56,64 @@ func (h FileHandler) DownloadFile(c echo.Context) error {
 	c.Response().Header().Set("md5", tool.MD5(string(file)))
 	return c.Stream(http.StatusOK, echo.MIMEOctetStream, bytes.NewReader(file))
 }
+
+func (h FileHandler) DeleteFile(c echo.Context) error {
+	var req dto.DeleteFileDTO
+	lang := tool.GetHeaderLanguage(c.Request().Header)
+	if err := c.Bind(&req); err != nil {
+		tool.Logger.Error(err.Error())
+		return c.JSON(http.StatusOK, server.NewError(lang, server.ParamErrCode))
+	}
+	if err := c.Validate(req); err != nil {
+		tool.Logger.Error(err.Error())
+		return c.JSON(http.StatusOK, server.NewError(lang, server.ParamErrCode))
+	}
+
+	code := h.service.DeleteFile(req)
+	if code != server.OkCode {
+		tool.Logger.Error(server.GetMsgByCode(lang, code))
+		return c.JSON(http.StatusOK, server.NewError(lang, code))
+	}
+
+	return c.JSON(http.StatusOK, server.NewOK(lang, server.Empty{}))
+}
+
+func (h FileHandler) ListFile(c echo.Context) error {
+	var req dto.ListFileDTO
+	lang := tool.GetHeaderLanguage(c.Request().Header)
+	if err := c.Bind(&req); err != nil {
+		tool.Logger.Error(err.Error())
+		return c.JSON(http.StatusOK, server.NewError(lang, server.ParamErrCode))
+	}
+	if err := c.Validate(req); err != nil {
+		tool.Logger.Error(err.Error())
+		return c.JSON(http.StatusOK, server.NewError(lang, server.ParamErrCode))
+	}
+	list, code := h.service.ListFile(req)
+	if code != server.OkCode {
+		tool.Logger.Error(server.GetMsgByCode(lang, code))
+		return c.JSON(http.StatusOK, server.NewError(lang, code))
+	}
+	return c.JSON(http.StatusOK, server.NewOK(lang, list))
+}
+
+func (h FileHandler) MoveFile(c echo.Context) error {
+	var req dto.DownloadFileDTO
+	lang := tool.GetHeaderLanguage(c.Request().Header)
+	if err := c.Bind(&req); err != nil {
+		tool.Logger.Error(err.Error())
+		return c.JSON(http.StatusOK, server.NewError(lang, server.ParamErrCode))
+	}
+	if err := c.Validate(req); err != nil {
+		tool.Logger.Error(err.Error())
+		return c.JSON(http.StatusOK, server.NewError(lang, server.ParamErrCode))
+	}
+	file, code := h.service.DownloadFile(req)
+	if code != server.OkCode {
+		tool.Logger.Error(server.GetMsgByCode(lang, code))
+		return c.JSON(http.StatusOK, server.NewError(lang, code))
+	}
+
+	c.Response().Header().Set("md5", tool.MD5(string(file)))
+	return c.Stream(http.StatusOK, echo.MIMEOctetStream, bytes.NewReader(file))
+}

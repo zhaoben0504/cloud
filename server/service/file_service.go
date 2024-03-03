@@ -5,7 +5,9 @@ import (
 	"cloud/server/dao"
 	"cloud/server/dto"
 	"cloud/server/model"
+	"cloud/server/vo"
 	"cloud/tool"
+	"errors"
 )
 
 // FileService File service
@@ -73,4 +75,61 @@ func (s *FileService) DownloadFile(req dto.DownloadFileDTO) ([]byte, int) {
 	}
 
 	return file, server.OkCode
+}
+
+// DeleteFile 文件删除
+func (s *FileService) DeleteFile(req dto.DeleteFileDTO) int {
+	file, err := s.dao.GetByID(server.GetEngine(), req.ID)
+	if err != nil {
+		tool.Logger.Error(err.Error())
+		return server.SQLErrCode
+	}
+
+	userInfo, err := server.GetUserInfoFromToken(req.Token)
+	if err != nil {
+		tool.Logger.Error(err.Error())
+		return server.InternalErrCode
+	}
+
+	// 判断删除的文件是不是自己的
+	if *userInfo.Id != *file.Uid {
+		tool.Logger.Error(errors.New(server.GetMsgByCode("zh", server.PermissionErrCode)))
+		return server.PermissionErrCode
+	}
+
+	// 删除数据库中文件信息
+	timeStamp := tool.UnixMillisecond()
+	err = s.dao.EditByID(server.GetEngine(), req.ID, &model.File{DeletedAt: &timeStamp})
+	if err != nil {
+		tool.Logger.Error(err.Error())
+		return server.InternalErrCode
+	}
+
+	err = server.DeleteFile(req.ID)
+	if err != nil {
+		tool.Logger.Error(err.Error())
+		return server.InternalErrCode
+	}
+
+	return server.OkCode
+}
+
+// ListFile 文件查询
+func (s *FileService) ListFile(req dto.ListFileDTO) (*vo.FileListVO, int) {
+	where := "deleted=0"
+	param := make([]interface{}, 0)
+	if req.Keyword != "" {
+		where += " AND `file_name` like ?"
+		param = append(param, "%s"+req.Keyword+"%s")
+	}
+
+	sort := make(map[string][]string)
+	sort["desc"] = []string{"created_at"}
+	list, total, err := s.dao.GetList(server.GetEngine(), where, param, req.Page, req.Rows, sort)
+	if err != nil {
+		tool.Logger.Error(err.Error())
+		return nil, server.SQLErrCode
+	}
+
+	return &vo.FileListVO{Total: total, List: list}, server.OkCode
 }

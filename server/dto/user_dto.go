@@ -17,5 +17,6 @@ type EmailCodeDTO struct {
 }
 
 type UserInfoDTO struct {
-	Id string `json:"id"`
+	Token string `json:"token" validate:"required"`
+	Id    string `json:"id"`
 }

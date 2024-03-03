@@ -3,6 +3,7 @@ package dao
 import (
 	"cloud/server"
 	"cloud/server/model"
+	"cloud/server/vo"
 	"cloud/tool"
 	"errors"
 	"github.com/go-xorm/xorm"
@@ -59,4 +60,25 @@ func (d UserDao) GetByID(engine *xorm.EngineGroup, id string) (*model.UserBasic,
 		return nil, nil
 	}
 	return &entity, nil
+}
+
+// GetList 分页查询列表
+func (d UserDao) GetList(engine *xorm.EngineGroup, where string, whereParam []interface{}, page, pageSize int,
+	sort map[string][]string) ([]vo.FileList, int64, error) {
+	list := new([]vo.FileList)
+
+	session := engine.Table("user").Where(where, whereParam...).Limit(pageSize, (page-1)*pageSize)
+	if asc, ok := sort["asc"]; ok {
+		session.Asc(asc...)
+	}
+	if desc, ok := sort["desc"]; ok {
+		session.Desc(desc...)
+	}
+	count, err := session.FindAndCount(list)
+	if err != nil {
+		tool.Logger.Error(err)
+		return nil, 0, err
+	}
+
+	return *list, count, nil
 }
